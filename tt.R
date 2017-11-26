@@ -1,6 +1,11 @@
 # Author: Dan Snow
 # Date: Nov 25, 2017
 
+# NOTE: You will almost certainly have to play around with timezones to get
+# this script to work properly. Try the following commands but with your timezone:
+# Sys.setenv(TZ = "America/Chicago")
+# options(tz="America/Chicago")
+
 # Importing the necessary libraries
 library(tidyverse)
 library(lubridate)
@@ -27,7 +32,6 @@ tt.df$time <- as.POSIXct(tt.df$created_at,
 tt.df$month <- floor_date(tt.df$time, "month")
 tt.df$time <- format(tt.df$time, format = "%H:%M:%S", tz = "America/New_York")
 tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S", tz = "UTC")
-#tt.df$time <- tt.df$time - 60*60*5
 
 # ---Sunrise Times---
 # Get sequence of months since Jan 2017 and DC coordinates
@@ -54,7 +58,7 @@ tt.density <- function(x) {
 tt.df$density <- tt.density(as.numeric(tt.df$time))
 
 # ---Final ggplot----
-tt.plot <- ggplot() +
+ggplot() +
   geom_tile(data = tt.df, aes(x = month, y = time, color = density), size = .3) +
   # geom_smooth(
   #   data = filter(tt.df, hour(tt.df$time) >= 5, hour(tt.df$time) <= 11),
@@ -95,7 +99,7 @@ tt.plot <- ggplot() +
     axis.title.y = element_blank(),
     axis.title.x = element_blank(),
     plot.title = element_text(size = 16, face = "bold"),
-    plot.subtitle = element_text(size = 14, margin = margin(b = 8, unit = "pt")),
+    plot.subtitle = element_text(size = 12, margin = margin(b = 8, unit = "pt")),
     plot.caption = element_text(margin = margin(t = 12, unit = "pt")),
     plot.margin = unit(c(10,10,20,10), "pt"))
 
