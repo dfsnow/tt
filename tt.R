@@ -1,10 +1,10 @@
 # Author: Dan Snow
 # Date: Nov 25, 2017
 
-# NOTE: You will almost certainly have to play around with timezones to get
-# this script to work properly. Try the following commands but with your timezone:
-# Sys.setenv(TZ = "America/Chicago")
-# options(tz="America/Chicago")
+# NOTE: You will almost certainly have to play around with timezones to get this
+# script to work properly. Try the following commands, though be sure to change back.
+Sys.setenv(TZ = "America/Chicago")
+options(tz = "America/Chicago")
 
 # Importing the necessary libraries
 library(tidyverse)
@@ -26,9 +26,7 @@ rm(temp)
 
 # ---Tweet Times---
 # Converting the created_at time to POSIX, removing the date, and changing the timezone
-tt.df$time <- as.POSIXct(tt.df$created_at,
-                               format = "%a %b %d %H:%M:%S",
-                               tz = "UTC")
+tt.df$time <- as.POSIXct(tt.df$created_at, format = "%a %b %d %H:%M:%S", tz = "UTC")
 tt.df$month <- floor_date(tt.df$time, "month")
 tt.df$time <- format(tt.df$time, format = "%H:%M:%S", tz = "America/New_York")
 tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S", tz = "UTC")
@@ -41,10 +39,11 @@ tt.seq <- seq(from = as.POSIXct("2017-01-01", tz = "America/New_York"),
                   by = "months")
 
 # Get sunrise time for first day of each month for DC
-tt.sunrise <- sunriset(tt.coord,
-                           tt.seq,
-                           direction = "sunrise",
-                           POSIXct.out = TRUE)
+tt.sunrise <- sunriset(
+  tt.coord,
+  tt.seq,
+  direction = "sunrise",
+  POSIXct.out = TRUE)
 tt.sunrise$hms <- format(tt.sunrise$time, format = "%H:%M:%S")
 tt.sunrise$hms <- as.POSIXct(tt.sunrise$hms, format = "%H:%M:%S", tz = "UTC")
 
@@ -59,14 +58,17 @@ tt.df$density <- tt.density(as.numeric(tt.df$time))
 
 # ---Final ggplot----
 ggplot() +
-  geom_tile(data = tt.df, aes(x = month, y = time, color = density), size = .3) +
+  geom_tile(
+    data = tt.df,
+    aes(x = month, y = time, color = density),
+    size = .3) +
   # geom_smooth(
   #   data = filter(tt.df, hour(tt.df$time) >= 5, hour(tt.df$time) <= 11),
   #   aes(x = month, y = time),
   #   size = 1.3,
   #   method= 'lm',
   #   se = FALSE,
-  #   color = "grey22") +
+  #   color = "blue2") +
   geom_tile(
     data = tt.sunrise,
     aes(time, hms),
@@ -84,7 +86,8 @@ ggplot() +
     labels = date_format("%b, %y"),
     expand = c(0, 0)) +
   labs(
-    x = "Month", y = "Time",
+    x = "Month",
+    y = "Time",
     title = "Trump Tweets Over Time",
     subtitle = "Tweets by month by hour. Collected from trumptwitterarchive.com.",
     color = "Density",
