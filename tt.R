@@ -26,14 +26,14 @@ tt.df$time <- as.POSIXct(tt.df$created_at,
                                tz = "UTC")
 tt.df$month <- floor_date(tt.df$time, "month")
 tt.df$time <- format(tt.df$time, format = "%H:%M:%S", tz = "America/New_York")
-tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S")
-
+tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S", tz = "UTC")
+#tt.df$time <- tt.df$time - 60*60*5
 
 # ---Sunrise Times---
 # Get sequence of months since Jan 2017 and DC coordinates
 tt.coord <- matrix(c(-77.04, 38.89), nrow = 1)
 tt.seq <- seq(from = as.POSIXct("2017-01-01", tz = "America/New_York"),
-                  length.out = as.numeric(format(Sys.Date(),"%m")),
+                  length.out = as.numeric(format(now(), "%m")),
                   by = "months")
 
 # Get sunrise time for first day of each month for DC
@@ -42,8 +42,7 @@ tt.sunrise <- sunriset(tt.coord,
                            direction = "sunrise",
                            POSIXct.out = TRUE)
 tt.sunrise$hms <- format(tt.sunrise$time, format = "%H:%M:%S")
-tt.sunrise$hms <- as.POSIXct(tt.sunrise$hms, format = "%H:%M:%S")
-
+tt.sunrise$hms <- as.POSIXct(tt.sunrise$hms, format = "%H:%M:%S", tz = "UTC")
 
 # ---Tweet Density---
 # A small function and extra column which find the density of tweets
@@ -54,27 +53,50 @@ tt.density <- function(x) {
 }
 tt.df$density <- tt.density(as.numeric(tt.df$time))
 
-# ---ggplot----
-ggplot() +
-  theme_minimal() +
+# ---Final ggplot----
+tt.plot <- ggplot() +
   geom_tile(data = tt.df, aes(x = month, y = time, color = density), size = .3) +
-  geom_smooth(data = filter(tt.df,
-                            tt.df$time >= "2017-11-25 00:00:00",
-                            tt.df$time <= "2017-11-25 12:00:00"),
-              aes(x = month, y = time),
-              size = 1.3,
-              method='lm',
-              se = FALSE) +
-  geom_tile(data = tt.sunrise, aes(time, hms), size = 1.3) +
-  scale_y_datetime(labels = date_format("%H:%M"),
-                   breaks = date_breaks("2 hour")) +
-  scale_x_datetime(breaks = date_breaks("1 month"),
-                   labels = date_format("%b, %y"),
-                   expand = c(0, 0)) +
-  ylab(label = "Time") +
-  xlab(label = "") +
-  scale_color_viridis()
+  # geom_smooth(
+  #   data = filter(tt.df, hour(tt.df$time) >= 5, hour(tt.df$time) <= 11),
+  #   aes(x = month, y = time),
+  #   size = 1.3,
+  #   method= 'lm',
+  #   se = FALSE,
+  #   color = "grey22") +
+  geom_tile(
+    data = tt.sunrise,
+    aes(time, hms),
+    size = 1.3,
+    color = "indianred",
+    alpha = 0.8) +
+  scale_y_datetime(
+    labels = date_format("%H:%M"),
+    breaks = date_breaks("2 hour"),
+    expand = c(0, 0),
+    limits = c(as.POSIXct(paste(Sys.Date() - 1, "18:00:00")),
+              as.POSIXct(paste(Sys.Date(), "18:00:00")))) +
+  scale_x_datetime(
+    breaks = date_breaks("1 month"),
+    labels = date_format("%b, %y"),
+    expand = c(0, 0)) +
+  labs(
+    x = "Month", y = "Time",
+    title = "Trump Tweets Over Time",
+    subtitle = "Tweets by month by hour. Collected from trumptwitterarchive.com.",
+    color = "Density",
+    caption = "*Red lines represent sunrise times for the first of each month.") +
+  scale_color_viridis(
+    breaks = c(5.0e-06, 1.0e-05, 1.5e-05, 2.0e-05, 2.5e-05),
+    labels = c("Low", "", "Med", "", "High")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 12, margin = margin(t = 8, unit = "pt")),
+    axis.text.y = element_text(size = 12),
+    axis.title.y = element_blank(),
+    axis.title.x = element_blank(),
+    plot.title = element_text(size = 16, face = "bold"),
+    plot.subtitle = element_text(size = 14, margin = margin(b = 8, unit = "pt")),
+    plot.caption = element_text(margin = margin(t = 12, unit = "pt")),
+    plot.margin = unit(c(10,10,20,10), "pt"))
 
-
-
-
+ggsave("tt.png", plot = tt.plot)
