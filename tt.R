@@ -51,22 +51,22 @@ tt.df <- tt.df[!is.na(tt.df$time),]
 
 # ---Tweet Density---
 # 1D density function
-tt.density <- function(x) {
-  den <- bkde(x = x)
-  i <- findInterval(x, den$x)
-  return(den$y[i])
-}
-tt.df$density <- tt.density(as.numeric(tt.df$time))
+# tt.density <- function(x) {
+#   den <- bkde(x = x)
+#   i <- findInterval(x, den$x)
+#   return(den$y[i])
+# }
+# tt.df$density <- tt.density(as.numeric(tt.df$time))
 
 # 2D density function
-# tt.density <- function(x, y, n = 100) {
-#   den <- kde2d(x = x, y = y, n = n)
-#   dx <- findInterval(x, den$x)
-#   dy <- findInterval(y, den$y)
-#   dd <- cbind(dx, dy)
-#   return(den$z[dd])
-# }
-# tt.df$density <- tt.density(as.numeric(tt.df$time), as.numeric(tt.df$date))
+tt.density <- function(x, y, n = 100) {
+  den <- kde2d(x = x, y = y, n = n)
+  dx <- findInterval(x, den$x)
+  dy <- findInterval(y, den$y)
+  dd <- cbind(dx, dy)
+  return(den$z[dd])
+}
+tt.df$density <- tt.density(as.numeric(tt.df$time), as.numeric(tt.df$date))
 
 # ---Final ggplot----
 tt.plot <- ggplot() +
@@ -100,8 +100,12 @@ tt.plot <- ggplot() +
     subtitle = "Tweets by month by hour. Collected from trumptwitterarchive.com.",
     color = "Tweet Density") +
   scale_color_viridis(
-    breaks = c(5.0e-06, 1.0e-05, 1.5e-05, 2.0e-05, 2.5e-05),
-    labels = c("Low", "", "Medium", "", "High")) +
+    # 2D scale
+
+    # 1D scale
+    # breaks = c(5.0e-06, 1.0e-05, 1.5e-05, 2.0e-05, 2.5e-05),
+    # labels = c("Low", "", "Medium", "", "High"))
+    ) +
   scale_linetype_manual(
     name = "Fox & Friends",
     values = c("Start/Stop" = "longdash")) +
