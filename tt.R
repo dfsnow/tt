@@ -18,7 +18,7 @@ library(MASS)
 library(glue)
 
 # Importing data from the Trump Twitter Archive Github
-tt.years <- 2014:2017
+tt.years <- 2017
 tt.git <- "https://github.com/bpb27/trump_tweet_data_archive/raw/master/condensed_{y}.json.zip"
 
 # Downloading files based on a vector of URLs
@@ -75,7 +75,7 @@ tt.density <- function(x, y, n = 100) {
 tt.df$density <- tt.density(as.numeric(tt.df$time), as.numeric(tt.df$date))
 
 # ---Final ggplot----
-ggplot() +
+tt.plot <- ggplot() +
   geom_tile(
     data = tt.df,
     aes(date, time, color = density),
