@@ -90,7 +90,8 @@ tt.plot <- ggplot() +
       as.POSIXct(paste(Sys.Date() - 1, "18:00:00")),
       as.POSIXct(paste(Sys.Date(), "18:00:00")))) +
   scale_x_datetime(
-    breaks = date_breaks("3 months"),
+    breaks = date_breaks(
+      paste(round(interval(min(tt.df$date), now()) / months(1)) / 9, "months")),
     labels = date_format("%b %y"),
     expand = c(0, 0)) +
   labs(
