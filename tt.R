@@ -37,7 +37,6 @@ list.files(pattern = "*.zip", full.names = TRUE) %>%
 
 # Cleaning up
 map(list.files(pattern = "*.json.zip"), file.remove)
-rm(tt.git, tt.years)
 
 # ---Tweet Times---
 # Converting the created_at time to POSIX, removing the date, and changing the timezone
@@ -92,13 +91,18 @@ tt.plot <- ggplot() +
   scale_x_datetime(
     breaks = date_breaks(
       paste(round(interval(min(tt.df$date), now()) / months(1)) / 9, "months")),
-    labels = date_format("%b %y"),
+    labels = ifelse(length(tt.years) > 1, date_format("%b %y"), date_format("%b")),
     expand = c(0, 0)) +
   labs(
     x = "Month",
     y = "Time",
-    title = "Trump Tweet Density vs. Fox & Friends Airtime",
-    subtitle = "Tweets by month by hour. Collected from trumptwitterarchive.com.",
+    title = glue(
+      "Trump Tweet Density vs. Fox & Friends Airtime, {y}",
+      y = ifelse(
+        length(tt.years) > 1,
+        paste(max(tt.years), min(tt.years), sep = " - "),
+        tt.years)),
+    subtitle = "Tweets plotted by month and minute. Collected from trumptwitterarchive.com.",
     color = "Tweet Density") +
   scale_color_viridis(
     breaks = c(
