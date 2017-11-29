@@ -18,7 +18,7 @@ library(MASS)
 library(glue)
 
 # Importing data from the Trump Twitter Archive Github
-tt.years <- 2017
+tt.years <- 2014:2017
 tt.git <- "https://github.com/bpb27/trump_tweet_data_archive/raw/master/condensed_{y}.json.zip"
 
 # Downloading files based on a vector of URLs
@@ -27,7 +27,7 @@ map(tt.years, ~ glue(tt.git, y = tt.years)) %>%
   map(., download.file(., basename(.), method = "libcurl"))
 
 # Unzipping files and combining them in a data frame
-list.files(pattern = "*.zip", full.names = TRUE) %>%
+dir(pattern = "*.zip", full.names = TRUE) %>%
   keep(~any(grepl("*.json", unzip(., list=TRUE)$Name))) %>%
   map_df(function(x) {
       temp <- tempdir()
@@ -36,7 +36,7 @@ list.files(pattern = "*.zip", full.names = TRUE) %>%
   }) -> tt.df
 
 # Cleaning up
-map(list.files(pattern = "*.json.zip"), file.remove)
+map(dir(pattern = "*.json.zip"), file.remove)
 
 # ---Tweet Times---
 # Converting the created_at time to POSIX, removing the date, and changing the timezone
@@ -49,7 +49,7 @@ tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S", tz = "UTC")
 tt.df <- tt.df[!is.na(tt.df$time),]
 
 # ---Tweet Density---
-# 1D density function
+# 1D density function for entire time period
 # tt.density <- function(x) {
 #   den <- bkde(x = x)
 #   i <- findInterval(x, den$x)
@@ -57,7 +57,14 @@ tt.df <- tt.df[!is.na(tt.df$time),]
 # }
 # tt.df$density <- tt.density(as.numeric(tt.df$time))
 
-# 2D density function
+# density function for each month
+# tt.df$density <- tt.df %>%
+#   group_by(date) %>%
+#   nest() %>%
+#   { map(.$data, ~ tt.density(as.numeric(.$time))) } %>%
+#   unlist()
+
+# 2D density function which groups across months
 tt.density <- function(x, y, n = 100) {
   den <- kde2d(x = x, y = y, n = n)
   dx <- findInterval(x, den$x)
@@ -68,7 +75,7 @@ tt.density <- function(x, y, n = 100) {
 tt.df$density <- tt.density(as.numeric(tt.df$time), as.numeric(tt.df$date))
 
 # ---Final ggplot----
-tt.plot <- ggplot() +
+ggplot() +
   geom_tile(
     data = tt.df,
     aes(date, time, color = density),
@@ -100,7 +107,7 @@ tt.plot <- ggplot() +
       "Trump Tweet Density vs. Fox & Friends Airtime, {y}",
       y = ifelse(
         length(tt.years) > 1,
-        paste(max(tt.years), min(tt.years), sep = " - "),
+        paste(min(tt.years), max(tt.years), sep = " - "),
         tt.years)),
     subtitle = "Tweets plotted by month and minute. Collected from trumptwitterarchive.com.",
     color = "Tweet Density") +
