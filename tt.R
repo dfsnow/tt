@@ -6,6 +6,7 @@
 Sys.setenv(TZ = "America/Chicago")
 options(tz = "America/Chicago")
 
+# ---Setup---
 # Importing the necessary libraries
 library(tidyverse)
 library(lubridate)
@@ -13,25 +14,43 @@ library(jsonlite)
 library(scales)
 library(viridis)
 library(KernSmooth)
+library(MASS)
+library(glue)
 
-# Importing data from the Trump Twitter Archive
-temp <- tempfile()
-download.file("https://github.com/bpb27/trump_tweet_data_archive/raw/master/condensed_2017.json.zip",
-              temp)
-unzip(temp, "condensed_2017.json")
-tt.df <- fromJSON("condensed_2017.json")
-unlink(temp)
-rm(temp)
+# Importing data from the Trump Twitter Archive Github
+tt.years <- 2017
+tt.git <- "https://github.com/bpb27/trump_tweet_data_archive/raw/master/condensed_{y}.json.zip"
+
+# Downloading files based on a vector of URLs
+map(tt.years, ~ glue(tt.git, y = tt.years)) %>%
+  flatten_chr() %>% unique() %>%
+  map(., download.file(., basename(.), method = "libcurl"))
+
+# Unzipping files and combining them in a data frame
+list.files(pattern = "*.zip", full.names = TRUE) %>%
+  keep(~any(grepl("*.json", unzip(., list=TRUE)$Name))) %>%
+  map_df(function(x) {
+      temp <- tempdir()
+      fromJSON(unzip(x, grep(x, "*.json"), exdir = temp)) %>%
+        mutate(x, year = as.character(str_extract_all(x, "\\d+")))
+  }) -> tt.df
+
+# Cleaning up
+map(list.files(pattern = "*.json.zip"), file.remove)
+rm(tt.git, tt.years)
 
 # ---Tweet Times---
 # Converting the created_at time to POSIX, removing the date, and changing the timezone
 tt.df$time <- as.POSIXct(tt.df$created_at, format = "%a %b %d %H:%M:%S", tz = "UTC")
-tt.df$month <- floor_date(tt.df$time, "month")
+tt.df$month <- format(tt.df$time, format = "%m")
+tt.df$date <- as.POSIXct(paste(tt.df$year, tt.df$month, "01", sep = "/"),
+                         format = "%Y/%m/%d", tz = "UTC")
 tt.df$time <- format(tt.df$time, format = "%H:%M:%S", tz = "America/New_York")
 tt.df$time <- as.POSIXct(tt.df$time, format = "%H:%M:%S", tz = "UTC")
+tt.df <- tt.df[!is.na(tt.df$time),]
 
 # ---Tweet Density---
-# A small function and extra column which find the density of tweets
+# 1D density function
 tt.density <- function(x) {
   den <- bkde(x = x)
   i <- findInterval(x, den$x)
@@ -39,11 +58,21 @@ tt.density <- function(x) {
 }
 tt.df$density <- tt.density(as.numeric(tt.df$time))
 
+# 2D density function
+# tt.density <- function(x, y, n = 100) {
+#   den <- kde2d(x = x, y = y, n = n)
+#   dx <- findInterval(x, den$x)
+#   dy <- findInterval(y, den$y)
+#   dd <- cbind(dx, dy)
+#   return(den$z[dd])
+# }
+# tt.df$density <- tt.density(as.numeric(tt.df$time), as.numeric(tt.df$date))
+
 # ---Final ggplot----
 tt.plot <- ggplot() +
   geom_tile(
     data = tt.df,
-    aes(month, time, color = density),
+    aes(date, time, color = density),
     size = .3) +
   geom_hline(
     aes(yintercept = c(
@@ -61,8 +90,8 @@ tt.plot <- ggplot() +
       as.POSIXct(paste(Sys.Date() - 1, "18:00:00")),
       as.POSIXct(paste(Sys.Date(), "18:00:00")))) +
   scale_x_datetime(
-    breaks = date_breaks("1 month"),
-    labels = date_format("%b, %y"),
+    breaks = date_breaks("2 months"),
+    labels = date_format("%b %y"),
     expand = c(0, 0)) +
   labs(
     x = "Month",
