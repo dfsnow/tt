@@ -90,7 +90,7 @@ tt.plot <- ggplot() +
       as.POSIXct(paste(Sys.Date() - 1, "18:00:00")),
       as.POSIXct(paste(Sys.Date(), "18:00:00")))) +
   scale_x_datetime(
-    breaks = date_breaks("1 months"),
+    breaks = date_breaks("3 months"),
     labels = date_format("%b %y"),
     expand = c(0, 0)) +
   labs(
@@ -100,12 +100,11 @@ tt.plot <- ggplot() +
     subtitle = "Tweets by month by hour. Collected from trumptwitterarchive.com.",
     color = "Tweet Density") +
   scale_color_viridis(
-    # 2D scale
-
-    # 1D scale
-    # breaks = c(5.0e-06, 1.0e-05, 1.5e-05, 2.0e-05, 2.5e-05),
-    # labels = c("Low", "", "Medium", "", "High"))
-    ) +
+    breaks = c(
+      max(tt.df$density),
+      (max(tt.df$density) + min(tt.df$density)) / 2,
+      min(tt.df$density)),
+    labels = c("High", "Mid", "Low")) +
   scale_linetype_manual(
     name = "Fox & Friends",
     values = c("Start/Stop" = "longdash")) +
